@@ -411,12 +411,30 @@ END;
 
 ---
 
-### **Expected Output in Result Table**
-| Roll | Name  | Class             |
-|------|-------|------------------|
-| 1    | Tejas | Distinction      |
-| 2    | Aarav | First Class      |
-| 3    | Riya  | Higher Second Class |
+6 Create tables CitiesIndia(pincode,nameofcity,earliername,area,population,avgrainfall) 
+Categories(Type,pincode) Note:- Enter data only in CitiesIndia
+Write PL/SQL Procedure & function to find the population density of the cities. If the population 
+density is above 3000 then Type of city must be entered as High Density in Category table. Between 2999 
+to 1000 as Moderate and below 999 as Low Density. Error must be displayed for population less than 10 or greater than 25718.
 
----
+CREATE PROCEDURE UpdateCityType AS
+BEGIN
+    FOR city IN (SELECT * FROM CitiesIndia) LOOP
+        DECLARE
+            density NUMBER;
+        BEGIN
+            IF city.population < 10 OR city.population > 25718 THEN
+                RAISE_APPLICATION_ERROR(-20001, 'Invalid population');
+            END IF;
+            density := city.population / city.area;
+            IF density > 3000 THEN
+                INSERT INTO Categories VALUES ('High Density', city.pincode);
+            ELSIF density BETWEEN 1000 AND 2999 THEN
+                INSERT INTO Categories VALUES ('Moderate', city.pincode);
+            ELSE
+                INSERT INTO Categories VALUES ('Low Density', city.pincode);
+            END IF;
+        END;
+    END LOOP;
+END;
 
