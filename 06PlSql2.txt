@@ -1,0 +1,74 @@
+
+26  Write a PL/SQL code to calculate tax for an employee of an organization ABC and to display his/her name & tax, by creating a table under employee database as below:
+Employee_salary(emp_no,basic,HRA,DA,Total_deduction,net_salary,gross_Salary)
+-- Step 1: Create the Table
+
+CREATE TABLE Employee_salary (
+    emp_no INT PRIMARY KEY,
+    basic DECIMAL(10, 2),
+    HRA DECIMAL(10, 2),
+    DA DECIMAL(10, 2),
+    Total_deduction DECIMAL(10, 2),
+    net_salary DECIMAL(10, 2),
+    gross_salary DECIMAL(10, 2)
+);
+
+-- Step 2: Insert 3+ Records into the Table
+INSERT INTO Employee_salary (emp_no, basic, HRA, DA, Total_deduction, net_salary, gross_salary) VALUES
+(101, 30000, 6000, 4500, 2000, (30000+6000+4500-2000), (30000+6000+4500)),
+(102, 40000, 8000, 6000, 3000, (40000+8000+6000-3000), (40000+8000+6000)),
+(103, 25000, 5000, 3000, 1500, (25000+5000+3000-1500), (25000+5000+3000)),
+(104, 35000, 7000, 5200, 2800, (35000+7000+5200-2800), (35000+7000+5200));
+
+
+commit;
+
+CREATE procedure tax as
+  taxNum DECIMAL(10 , 2);
+   
+begin
+  for emp in (SELECT * from Employee_salary) loop
+    taxNum := emp.gross_salary * 0.1;
+    
+    update Employee_salary
+    set Total_deduction = taxNum
+    where emp_no = emp.emp_no;
+  
+  end loop;
+end;
+/
+
+begin
+  tax;
+end;
+/
+
+SELECT * from Employee_salary;
+
+
+
+7 Write PL/SQL Procedure & function to find class [Distinction (Total marks from 1499 to 990) 
+,First Class( 899 to 900) Higher Second (899 to 825) 
+,Second,Pass (824 to 750) ] of a student based on total
+ marks from table Student (rollno, name, Marks1, Marks2, Marks3,
+  Marks4, Marks5). 
+  
+CREATE PROCEDURE CalculateClass AS
+BEGIN
+    FOR s IN (SELECT * FROM Student) LOOP
+        DECLARE
+            total NUMBER;
+            class VARCHAR(20);
+        BEGIN
+            total := s.Marks1 + s.Marks2 + s.Marks3 + s.Marks4 + s.Marks5;
+            IF total < 0 OR total > 500 THEN
+                RAISE_APPLICATION_ERROR(-20002, 'Invalid marks');
+            END IF;
+            IF total BETWEEN 990 AND 1499 THEN class := 'Distinction';
+            ELSIF total BETWEEN 900 AND 989 THEN class := 'First Class';
+            -- ... other conditions
+            END IF;
+            INSERT INTO Result VALUES (s.rollno, total, class);
+        END;
+    END LOOP;
+END;
