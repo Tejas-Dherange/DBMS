@@ -1,0 +1,214 @@
+18  Implement all SQL DML opeartions with  operators, functions, and set operator for given schema:
+
+Account(Acc_no, branch_name,balance)
+branch(branch_name,branch_city,assets)
+customer(cust_name,cust_street,cust_city)
+Depositor(cust_name,acc_no)
+Loan(loan_no,branch_name,amount)
+Borrower(cust_name,loan_no)
+
+Create above tables with appropriate constraints like primary key, foreign key, check constrains, not null etc.Solve following query:
+
+1.	Find all customers who have an account or loan or both at bank.
+2.	Find all customers who have both account and loan at bank.
+3.	Find all customer who have account but no loan at the bank.
+4.	Find average account balance at Akurdi branch.
+
+
+Here's a step-by-step implementation of SQL **DDL** for table creation and **DML** queries to solve the given problems.
+
+---
+
+### **Step 1: Create Tables with Constraints**
+```sql
+CREATE TABLE Account (
+    Acc_no INT PRIMARY KEY,
+    branch_name VARCHAR(50) NOT NULL,
+    balance DECIMAL(12,2) CHECK (balance >= 0)
+);
+
+CREATE TABLE Branch (
+    branch_name VARCHAR(50) PRIMARY KEY,
+    branch_city VARCHAR(50) NOT NULL,
+    assets DECIMAL(15,2) CHECK (assets >= 0)
+);
+
+CREATE TABLE Customer (
+    cust_name VARCHAR(50) PRIMARY KEY,
+    cust_street VARCHAR(100) NOT NULL,
+    cust_city VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE Depositor (
+    cust_name VARCHAR(50) REFERENCES Customer(cust_name),
+    acc_no INT REFERENCES Account(Acc_no),
+    PRIMARY KEY (cust_name, acc_no)
+);
+
+CREATE TABLE Loan (
+    loan_no INT PRIMARY KEY,
+    branch_name VARCHAR(50) REFERENCES Branch(branch_name),
+    amount DECIMAL(12,2) CHECK (amount > 0)
+);
+
+CREATE TABLE Borrower (
+    cust_name VARCHAR(50) REFERENCES Customer(cust_name),
+    loan_no INT REFERENCES Loan(loan_no),
+    PRIMARY KEY (cust_name, loan_no)
+);
+```
+
+---
+
+### **Step 2: SQL Queries to Solve Problems**
+#### **1. Find all customers who have an account or loan or both at the bank**
+```sql
+SELECT cust_name 
+FROM Customer 
+WHERE cust_name IN (SELECT cust_name FROM Depositor) 
+   OR cust_name IN (SELECT cust_name FROM Borrower);
+```
+
+---
+
+#### **2. Find all customers who have both an account and a loan at the bank**
+```sql
+SELECT cust_name 
+FROM Depositor 
+INTERSECT 
+SELECT cust_name 
+FROM Borrower;
+```
+(Note: `INTERSECT` works in PostgreSQL & Oracle, but in MySQL, use **JOIN**)
+
+```sql
+SELECT D.cust_name 
+FROM Depositor D 
+JOIN Borrower B ON D.cust_name = B.cust_name;
+```
+
+---
+
+#### **3. Find all customers who have an account but no loan at the bank**
+```sql
+SELECT cust_name 
+FROM Depositor 
+WHERE cust_name NOT IN (SELECT cust_name FROM Borrower);
+```
+
+---
+
+#### **4. Find the average account balance at Akurdi branch**
+```sql
+SELECT AVG(balance) AS avg_balance 
+FROM Account 
+WHERE branch_name = 'Akurdi';
+```
+
+
+
+13 Create the instance of the COMPANY which consists of the following tables:
+EMPLOYEE(Fname, Minit, Lname, Ssn, Bdate, Address, Sex, Salary,  Dno)
+DEPARTEMENT(Dname, Dno, Mgr_ssn, Mgr_start_date)
+DEPT_LOCATIONS(Dnumber, Dlocation)
+PROJECT(Pname, Pnumber, Plocation, Dno)
+WORKS_ON(Essn, Pno, Hours)
+DEPENDENT(Essn, Dependent_name, Sex, Bdate, Relationship)
+Here’s a clear and correct set of SQL solutions based on your **COMPANY** database schema.
+
+---
+
+### ✅ Schema Overview (for reference)
+
+```sql
+EMPLOYEE(Fname, Minit, Lname, Ssn, Bdate, Address, Sex, Salary, Dno)
+DEPARTMENT(Dname, Dno, Mgr_ssn, Mgr_start_date)
+DEPT_LOCATIONS(Dnumber, Dlocation)
+PROJECT(Pname, Pnumber, Plocation, Dno)
+WORKS_ON(Essn, Pno, Hours)
+DEPENDENT(Essn, Dependent_name, Sex, Bdate, Relationship)
+```
+
+---
+
+## 🔍 Query 1: Project details in **‘Stafford’** with department manager info
+
+```sql
+SELECT 
+    P.Pnumber,
+    P.Dno,
+    E.Lname AS Manager_Lname,
+    E.Address,
+    E.Bdate
+FROM 
+    PROJECT P
+JOIN 
+    DEPARTMENT D ON P.Dno = D.Dno
+JOIN 
+    EMPLOYEE E ON D.Mgr_ssn = E.Ssn
+WHERE 
+    P.Plocation = 'Stafford';
+```
+
+---
+
+## 🔍 Query 2: Project numbers involving employees with last name **‘Smith’**, either as workers or managers
+
+```sql
+-- Smith as worker
+SELECT DISTINCT P.Pnumber
+FROM 
+    PROJECT P
+JOIN 
+    WORKS_ON W ON P.Pnumber = W.Pno
+JOIN 
+    EMPLOYEE E ON E.Ssn = W.Essn
+WHERE 
+    E.Lname = 'Smith'
+
+UNION
+
+-- Smith as manager of department controlling project
+SELECT DISTINCT P.Pnumber
+FROM 
+    PROJECT P
+JOIN 
+    DEPARTMENT D ON P.Dno = D.Dno
+JOIN 
+    EMPLOYEE E ON D.Mgr_ssn = E.Ssn
+WHERE 
+    E.Lname = 'Smith';
+```
+
+---
+
+## 🔍 Query 3: Employees whose address is in **Houston, Texas**
+
+```sql
+SELECT *
+FROM   EMPLOYEE
+WHERE  Address LIKE '%Houston, Texas%';
+```
+
+> 📝 This assumes addresses are stored as full strings like `"123 Elm St, Houston, Texas"`.
+
+---
+
+## 🔍 Query 4: Resulting salaries after **10% raise** for employees working on **‘ProductX’**
+
+```sql
+SELECT 
+    E.Fname,
+    E.Lname,
+    E.Salary AS Current_Salary,
+    ROUND(E.Salary * 1.10, 2) AS New_Salary
+FROM 
+    EMPLOYEE E
+JOIN 
+    WORKS_ON W ON E.Ssn = W.Essn
+JOIN 
+    PROJECT P ON W.Pno = P.Pnumber
+WHERE 
+    P.Pname = 'ProductX';
+```
+

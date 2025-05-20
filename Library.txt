@@ -1,0 +1,151 @@
+
+Here’s the **SQL table creation** for the given schema with **appropriate constraints**:
+
+---
+
+### **1. Borrower Table**
+```sql
+CREATE TABLE Borrower (
+    Rollin INT PRIMARY KEY,
+    Name VARCHAR(100) NOT NULL,
+    DateofIssue DATE NOT NULL,
+    NameofBook VARCHAR(255) NOT NULL,
+    Status CHAR(1) CHECK (Status IN ('I', 'R')) -- 'I' for Issued, 'R' for Returned
+);
+```
+
+---
+
+### **2. Fine Table**
+```sql
+CREATE TABLE Fine (
+    Roll_no INT REFERENCES Borrower(Rollin),
+    Date DATE NOT NULL,
+    Amt DECIMAL(12,2) CHECK (Amt >= 0),
+    PRIMARY KEY (Roll_no, Date)
+);
+```
+
+---
+
+### **3. Library Table**
+```sql
+CREATE TABLE Library (
+    bid INT PRIMARY KEY,
+    bname VARCHAR(255) NOT NULL UNIQUE,
+    doi DATE NOT NULL, -- Date of Issue
+    status CHAR(1) CHECK (status IN ('I', 'R')),
+    noc INT CHECK (noc >= 0) -- Number of Copies
+);
+```
+
+---
+
+### **4. Transaction Table**
+```sql
+CREATE TABLE Transaction (
+    tid INT PRIMARY KEY,
+    bid INT REFERENCES Library(bid),
+    bname VARCHAR(255) NOT NULL,
+    status CHAR(1) CHECK (status IN ('I', 'R'))
+);
+
+
+Sure! Here’s how you can insert sample records into the tables:
+
+---
+
+### **1. Insert Records into `Borrower` Table**
+```sql
+INSERT INTO Borrower (Rollin, Name, DateofIssue, NameofBook, Status) VALUES
+(101, 'Tejas', '2025-05-01', 'Database Systems', 'I'),
+(102, 'Riya', '2025-04-15', 'Operating Systems', 'I'),
+(103, 'Sam', '2025-03-20', 'Networking Fundamentals', 'R');
+```
+
+---
+
+### **2. Insert Records into `Fine` Table**
+```sql
+INSERT INTO Fine (Roll_no, Date, Amt) VALUES
+(101, '2025-05-16', 75.00), -- 15 days late, Rs 5 per day
+(102, '2025-05-20', 250.00); -- 50 days late, Rs 50 per day
+```
+
+---
+
+### **3. Insert Records into `Library` Table**
+```sql
+INSERT INTO Library (bid, bname, doi, status, noc) VALUES
+(1, 'Database Systems', '2025-05-01', 'I', 4),
+(2, 'Operating Systems', '2025-04-15', 'I', 5),
+(3, 'Networking Fundamentals', '2025-03-20', 'R', 2);
+```
+
+---
+
+### **4. Insert Records into `Transaction` Table**
+```sql
+INSERT INTO Transaction (tid, bid, bname, status) VALUES
+(1001, 1, 'Database Systems', 'I'),
+(1002, 2, 'Operating Systems', 'I'),
+(1003, 3, 'Networking Fundamentals', 'R');
+
+
+DECLARE
+    v_rollno     Borrower.Rollin%TYPE;
+    v_bookname   Borrower.NameofBook%TYPE;
+    v_doi        Borrower.DateofIssue%TYPE;
+    v_days       NUMBER;
+    v_fine_amt   NUMBER := 0;
+    v_status     VARCHAR2(1);
+    v_bid        Library.bid%TYPE;
+    v_bname      Library.bname%TYPE;
+
+BEGIN
+    v_rollno := '&Enter_Roll_No';
+    v_bookname := '&Enter_Book_Name';
+
+    SELECT DateOfIssue, Status INTO v_doi, v_status
+    FROM   Borrower
+    WHERE  Rollin = v_rollno AND NameofBook = v_bookname;
+
+    v_days := TRUNC(SYSDATE - v_doi);
+
+    IF v_days > 30 THEN
+        v_fine_amt := (v_days - 30) * 50 + (30 - 15) * 5; -- 50/day after 30, 5/day between 15-30
+    ELSIF v_days > 15 THEN
+        v_fine_amt := (v_days - 15) * 5;
+    END IF;
+
+    UPDATE Borrower
+    SET    Status = 'R'
+    WHERE  Rollin = v_rollno AND NameofBook = v_bookname;
+    SELECT bid, bname INTO v_bid, v_bname
+    FROM   Library
+    WHERE  bname = v_bookname;
+
+    INSERT INTO transaction (tid, bid, bname, status)
+    VALUES (transaction_seq.NEXTVAL, v_bid, v_bname, 'RETURN'); -- assuming a sequence
+
+    UPDATE Library
+    SET    noc = noc + 1
+    WHERE  bid = v_bid;
+
+    IF v_fine_amt > 0 THEN
+        INSERT INTO Fine (Roll_no, Date, Amt)
+        VALUES (v_rollno, SYSDATE, v_fine_amt);
+    END IF;
+
+    DBMS_OUTPUT.PUT_LINE('Book return processed successfully.');
+    IF v_fine_amt > 0 THEN
+        DBMS_OUTPUT.PUT_LINE('Fine imposed: Rs. ' || v_fine_amt);
+    END IF;
+
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('No matching record found for Roll No and Book Name.');
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Error occurred: ' || SQLERRM);
+END;
+/

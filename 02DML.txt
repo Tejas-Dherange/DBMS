@@ -403,8 +403,26 @@ where C.city="Pune"
 
 1. Find the total population in pune.
 
-2.  returns all city with total population greater than 10 million
+select total
+from Citydetails
+where area="Pune"
+
+2.  returns all city with total population greater 
+than 10 million
+select area
+from Citydetails
+where population>10000000;
+
 3. returns the average populations for each city.
-4.  returns the minimum and maximum cities by population for each city.
+select avg(population_total) as avg_population
+from Citydetails
+group by area
+4.  returns the minimum and maximum cities
+ by population for each city.
+
+SELECT name, total_population 
+FROM Citydetails 
+WHERE total_population = (SELECT MIN(total_population) FROM Citydetails)
+   OR total_population = (SELECT MAX(total_population) FROM Citydetails);
 
 
