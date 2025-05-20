@@ -1,0 +1,108 @@
+************************************----1----******************************************
+### **Entity-Relationship (ER) Diagram**
+We need at least 5 entities for the **Bank Database**. Here's a suggestion:
+1. Customer (CustomerId, Name, Contact, Address)
+2. Account (AcctNo, CustomerId, Type, Balance)
+3. Transaction (TxnId, AcctNo, Date, Amount, Type)
+4. Loan** (LoanId, CustomerId, Amount, InterestRate)
+5. Branch** (BranchId, Name, Location)
+
+The **ER diagram** will depict relationships between these entities:
+- A **Customer** can have multiple **Accounts**.
+- An **Account** has multiple **Transactions**.
+- A **Customer** can take **Loans** from the bank.
+- Each **Customer** is associated with a **Branch**.
+
+---
+
+### **Converting Entities into Tables**
+Now, let's create tables using **DDL (Data Definition Language)**:
+
+```sql
+CREATE TABLE Customer (
+    CustomerId INT PRIMARY KEY,
+    Name VARCHAR(100) NOT NULL,
+    Contact VARCHAR(15),
+    Address VARCHAR(255)
+);
+
+CREATE TABLE Account (
+    AcctNo INT PRIMARY KEY,
+    CustomerId INT REFERENCES Customer(CustomerId),
+    Type VARCHAR(20),
+    Balance DECIMAL(12,2) CHECK (Balance >= 0)
+);
+
+CREATE TABLE Transaction (
+    TxnId INT PRIMARY KEY,
+    AcctNo INT REFERENCES Account(AcctNo),
+    Date DATE,
+    Amount DECIMAL(12,2) CHECK (Amount > 0),
+    Type VARCHAR(20)
+);
+
+CREATE TABLE Loan (
+    LoanId INT PRIMARY KEY,
+    CustomerId INT REFERENCES Customer(CustomerId),
+    Amount DECIMAL(12,2) CHECK (Amount > 0),
+    InterestRate DECIMAL(5,2) CHECK (InterestRate > 0)
+);
+
+CREATE TABLE Branch (
+    BranchId INT PRIMARY KEY,
+    Name VARCHAR(100),
+    Location VARCHAR(255)
+);
+```
+
+---
+
+### **Creating Views Using JOIN Conditions**
+We will create **views** to retrieve specific information.
+
+#### **View 1: Customer Accounts**
+```sql
+CREATE VIEW CustomerAccounts AS
+SELECT c.CustomerId, c.Name, a.AcctNo, a.Type, a.Balance
+FROM Customer c
+JOIN Account a ON c.CustomerId = a.CustomerId;
+```
+
+#### **View 2: Loan Details Per Customer**
+```sql
+CREATE VIEW LoanDetails AS
+SELECT c.CustomerId, c.Name, l.LoanId, l.Amount, l.InterestRate
+FROM Customer c
+JOIN Loan l ON c.CustomerId = l.CustomerId;
+```
+
+---
+
+### **Creating Index**
+We create an **index** called `CustomerId` to arrange customer names in ascending order:
+
+```sql
+CREATE INDEX CustomerId ON Customer (Name ASC);
+```
+
+---
+
+### **Creating Sequence for Account Number**
+We generate an **automatic sequence** for `AcctNo`:
+
+```sql
+CREATE SEQUENCE AcctNoSeq
+START WITH 1000
+INCREMENT BY 1;
+```
+
+To use this **sequence** while inserting values:
+
+```sql
+INSERT INTO Account (AcctNo, CustomerId, Type, Balance)
+VALUES (NEXTVAL('AcctNoSeq'), 1, 'Savings', 5000.00);
+```
+
+---
+
+This should provide a strong foundation for your **Bank Database** using ER modeling and DDL operations. Let me know if you want refinements! 🚀
