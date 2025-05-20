@@ -176,8 +176,11 @@ Would you like any modifications or additional queries? 🔥
 
 Q 25  Design and Implement any 5 query using MongoDB
 1.	Create a collection called ‘games’.
-2.	Add 5 games to the database. Give each document the following properties: name, gametype, score (out of 100), achievements
+2.	Add 5 games to the database. Give each document the following properties:
+ name, gametype, score (out of 100), achievements
 3.	Write a query that returns all the games
 4.	Write a query that returns the 3 highest scored games.
 5.	Write a query that returns all the games that have both the ‘Game Maser’ and
 the ‘Speed Demon’ achievements.
+
+

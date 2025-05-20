@@ -6,7 +6,8 @@ PROJECT(Pname, Pnumber, Plocation, Dno)
 WORKS_ON(Essn, Pno, Hours)
 DEPENDENT(Essn, Dependent_name, Sex, Bdate, Relationship)
 
-
+select P.Pnumber 
+from 
 ```sql
 CREATE TABLE EMPLOYEE (
     Fname VARCHAR(50),
@@ -185,5 +186,225 @@ FROM Customer;
 3.	Create index on city and area find the max population in Mumbai
 4.	Create index on name.
 
+
+
+14 Implement all SQL DML opeartions with  operators, functions, and set operator for given schema:
+Account(Acc_no, branch_name,balance)
+branch(branch_name,branch_city,assets)
+customer(cust_name,cust_street,cust_city)
+Depositor(cust_name,acc_no)
+Loan(loan_no,branch_name,amount)
+Borrower(cust_name,loan_no)
+
+Solve following query:
+1.	Find the average account balance at each branch
+2.	Find no. of depositors at each branch.
+3.	Find the branches where average account balance > 12000.
+4.	Find number of tuples in customer relation.
+
+
+1
+select Branch_Name ,avg(balance) as avg_balance
+from Account
+group by Branch_Name;
+
+2
+select count(d.cust_name) as no_of_depositors
+from Account A
+join Depositor d on A.acc_no=D.acc_no
+group by a.branch_name;
+
+
+3
+select Branch_Name ,avg(balance) as avg_balance
+from Account
+group by Branch_Name;
+having avg(balance)>1200
+
+4
+select count(*) as tuples from customer;
+
+
+18  Implement all SQL DML opeartions with  operators, functions, and set operator for given schema:
+
+Account(Acc_no, branch_name,balance)
+branch(branch_name,branch_city,assets)
+customer(cust_name,cust_street,cust_city)
+Depositor(cust_name,acc_no)
+Loan(loan_no,branch_name,amount)
+Borrower(cust_name,loan_no)
+
+Create above tables with appropriate constraints like primary key, foreign key, check constrains, not null etc.Solve following query:
+
+1.	Find all customers who have an account or loan or both at bank.
+2.	Find all customers who have both account and loan at bank.
+3.	Find all customer who have account but no loan at the bank.
+4.	Find average account balance at Akurdi branch.
+
+1
+
+
+
+19  Implement all SQL DML operations with  operators, functions, and set operator for given schema:
+
+Account(Acc_no, branch_name,balance)
+branch(branch_name,branch_city,assets)
+customer(cust_name,cust_street,cust_city)
+Depositor(cust_name,acc_no)
+Loan(loan_no,branch_name,amount)
+Borrower(cust_name,loan_no)
+
+Solve following query:
+
+1.	 Calculate total loan amount given by bank.
+
+select sum(amount) as total_amt
+from Loan
+2.	 Delete all loans with loan amount between 1300 and 1500.
+delete from Loan where amount between 1300 and 1500;
+3.	Delete all tuples at every branch located in Nigdi.
+delete from Loan where branc_name="Nigdi"
+
+
+
+20  Create the following tables.
+1.	 Deposit (actno,cname,bname,amount,adate)
+2.	Branch (bname,city)
+3.	Customers (cname, city)
+4.	Borrow(loanno,cname,bname, amount)
+Add primary key and foreign key wherever applicable.Insert data into the above created tables.
+1.	Display account date of customers “ABC”.
+select adate 
+from Deposit
+where cname="ABC";
+
+2.	Modify the size of attribute of amount in deposit
+alter table Deposit amount decimal(15,2)
+3.	Display names of customers living in city pune.
+select cname from Customers where city="Pune";
+
+4.	Display  name of the city where branch “OBC” is located.
+select city from Branch where cname="OBC";
+
+5.	Find the number of tuples in the customer relation
+  select count(*) as total_tuples from Customers; 
+
+  
+  
+  
+21 Create following tables:
+6.	 Deposit (actno,cname,bname,amount,adate)
+7.	Branch (bname,city)
+8.	Customers (cname, city)
+9.	Borrow(loanno,cname,bname, amount)
+
+Add primary key and foreign key wherever applicable. Insert data into the above created tables.
+1.	Display customer name having living city Bombay and branch city Nagpur
+
+select cname
+from Customer
+where city="Bombay"
+and city in (select city from Branch where city="Nagpur")
+
+
+2.	Display customer name having same living city as their branch city
+select C.cname
+from Customer C
+join Branch B on C.city=B.city;
+3.	Display customer name who are borrowers as well as depositors and having living city Nagpur.
+
+select C.cname
+from Customer C
+join Depositor D on C.cname=D.cname
+join Borrower B on C.cname=B.cname
+where C.city="Nagpur";
+
+
+22 Create the following tables.
+4.	 Deposit (actno,cname,bname,amount,adate)
+5.	Branch (bname,city)
+6.	Customers (cname, city)
+7.	Borrow(loanno,cname,bname, amount)
+Add primary key and foreign key wherever applicable.
+Insert data into the above created tables.
+1.	Display loan no and loan amount of borrowers having the
+ same branch as that of sunil. 
+
+ select loanno , amount 
+ from Borrow
+ where bname = 
+  (select bname from  Borrow where cname="sunil");
+
+
+2.	Display deposit and loan details of customers in the 
+city where pramod is living. 
+select C.cname,C.city, D.amount as deposited_amount,
+L.loanno,L.amount as loan_amount
+from Customer C
+join Deposite D on D.cname=C.cname
+join Borrow B on B.cname=C.cname
+where C.city= (select city from  Customer where cname="pramod")
+
+3.	Display borrower names having deposit amount greater
+ than 1000 and having the same living city as pramod.
+
+select B.cname 
+from Borrow B
+join Deposite D on D.cname=B.cname
+join Customer C on C.cname=B.cname
+where amount>1000 and C.city = 
+(select city from  Customer where cname="sunil");
+
+
+4.	Display branch and  living city of ‘ABC’
+
+select B.bname,c.city
+from Customer c
+join Branch B on c.city=B.city
+where c.cname="ABC"
+
+
+24 Create the following tables.
+5.	 Deposit (actno,cname,bname,amount,adate)
+6.	Branch (bname,city)
+7.	Customers (cname, city)
+8.	Borrow(loanno,cname,bname, amount)
+Add primary key and foreign key wherever applicable. Insert data into the above created tables.
+1.	Display amount for depositors living in 
+the city where Anil is living.
+
+select D.amount 
+from Deposit D
+join Customer C on D.cname=C.cname
+where C.city=(select city from customer where cname="Anil");
+
+2.	Display total loan and  maximum loan taken
+ from KAROLBAGH branch.
+
+ select sum(amount) as total_loan , max(amount) as maximum_loan
+ from Borrow
+ where bname="KAROLBAGH"
+
+3.	Display total deposit of customers having 
+account date later than ‘1-jan-98’.
+
+select sum(total)
+from Deposit
+where adate> date '';
+
+4.	Display maximum deposit of customers living in PUNE.
+select max(D.amount) as max_deposit
+from Deposit D
+join Customer C on C.cname=D.cname
+where C.city="Pune"
+
+
+31.Create database  :Citydetails(_id,name,area,population(total,Adults,seniorcitizens,sexratio), geography(avgtemp, avgrainfall, longitude, latitude))
+
+1. Find the total population in pune.
+
+2.  returns all city with total population greater than 10 million
+3. returns the average populations for each city.
+4.  returns the minimum and maximum cities by population for each city.
 
 
