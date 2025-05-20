@@ -102,7 +102,6 @@ To use this **sequence** while inserting values:
 INSERT INTO Account (AcctNo, CustomerId, Type, Balance)
 VALUES (NEXTVAL('AcctNoSeq'), 1, 'Savings', 5000.00);
 ```
+Q 1 2 8 11
+************************************----2----******************************************
 
----
-
-This should provide a strong foundation for your **Bank Database** using ER modeling and DDL operations. Let me know if you want refinements! 🚀

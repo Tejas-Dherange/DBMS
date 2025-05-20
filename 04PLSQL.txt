@@ -1,0 +1,422 @@
+26  Write a PL/SQL code to calculate tax for an employee of an organization ABC and to display his/her name & tax, by creating a table under employee database as below:
+Employee_salary(emp_no,basic,HRA,DA,Total_deduction,net_salary,gross_Salary)
+
+
+Sure! Below is a **PL/SQL block** that calculates tax for an employee based on their **gross salary**. The tax rate is assumed for demonstration purposes. This code also creates the necessary table and inserts sample data.
+
+---
+
+### **Step 1: Create Employee_salary Table**
+```sql
+CREATE TABLE Employee_salary (
+    emp_no INT PRIMARY KEY,
+    basic DECIMAL(10,2),
+    HRA DECIMAL(10,2),
+    DA DECIMAL(10,2),
+    Total_deduction DECIMAL(10,2),
+    net_salary DECIMAL(10,2),
+    gross_salary DECIMAL(10,2)
+);
+```
+
+---
+
+### **Step 2: Insert Sample Data**
+```sql
+INSERT INTO Employee_salary (emp_no, basic, HRA, DA, Total_deduction, gross_salary, net_salary)
+VALUES (101, 50000, 15000, 10000, 5000, 75000, 70000);
+```
+
+---
+
+### **Step 3: PL/SQL Code for Tax Calculation**
+```sql
+DECLARE
+    v_emp_no Employee_salary.emp_no%TYPE;
+    v_gross_salary Employee_salary.gross_salary%TYPE;
+    v_tax DECIMAL(10,2);
+    v_emp_name VARCHAR(100);
+BEGIN
+    -- Assuming a tax rate:
+    v_emp_no := 101;
+    
+    -- Fetch Employee Salary
+    SELECT gross_salary INTO v_gross_salary FROM Employee_salary WHERE emp_no = v_emp_no;
+    
+    -- Tax Calculation Based on Slabs
+    IF v_gross_salary > 80000 THEN
+        v_tax := v_gross_salary * 0.20; -- 20% tax
+    ELSIF v_gross_salary > 50000 THEN
+        v_tax := v_gross_salary * 0.15; -- 15% tax
+    ELSE
+        v_tax := v_gross_salary * 0.10; -- 10% tax
+    END IF;
+    
+    -- Fetch Employee Name (Assuming another Employee table exists)
+    SELECT emp_name INTO v_emp_name FROM Employee WHERE emp_no = v_emp_no;
+    
+    -- Display Results
+    DBMS_OUTPUT.PUT_LINE('Employee Name: ' || v_emp_name);
+    DBMS_OUTPUT.PUT_LINE('Calculated Tax: ' || v_tax);
+END;
+```
+
+---
+
+### **Expected Output**
+```
+Employee Name: John Doe
+Calculated Tax: 15000.00
+```
+
+
+27  Create PL/SQL code block: Write a PL/SQL block of code for the following schema: 
+ Borrower(Rollin, Name, DateofIssue, NameofBook, Status) 
+ Fine(Roll_no,Date,Amt) 
+
+
+Here is a **PL/SQL block** that fulfills all the given conditions, including user input handling, fine calculation, status update, and exception handling.
+
+---
+
+### **Step 1: Create Tables**
+```sql
+CREATE TABLE Borrower (
+    Rollin INT PRIMARY KEY,
+    Name VARCHAR(100),
+    DateofIssue DATE,
+    NameofBook VARCHAR(255),
+    Status CHAR(1) CHECK (Status IN ('I', 'R'))
+);
+
+CREATE TABLE Fine (
+    Roll_no INT REFERENCES Borrower(Rollin),
+    Date DATE,
+    Amt DECIMAL(10,2)
+);
+```
+
+---
+
+### **Step 2: Insert Sample Data**
+```sql
+INSERT INTO Borrower (Rollin, Name, DateofIssue, NameofBook, Status)
+VALUES (101, 'Tejas', TO_DATE('2025-04-10', 'YYYY-MM-DD'), 'Data Structures', 'I');
+```
+
+---
+
+### **Step 3: PL/SQL Code for Fine Calculation**
+```sql
+DECLARE
+    v_roll_no Borrower.Rollin%TYPE;
+    v_book_name Borrower.NameofBook%TYPE;
+    v_issue_date Borrower.DateofIssue%TYPE;
+    v_days_late INT;
+    v_fine_amt DECIMAL(10,2);
+    v_status Borrower.Status%TYPE;
+    
+BEGIN
+    -- Accept Roll No and Book Name from User (using substitution variable)
+    v_roll_no := &Roll_No;
+    v_book_name := '&Book_Name';
+    
+    -- Fetch Date of Issue and Status
+    SELECT DateofIssue, Status INTO v_issue_date, v_status 
+    FROM Borrower WHERE Rollin = v_roll_no AND NameofBook = v_book_name;
+    
+    -- Check if book is already returned
+    IF v_status = 'R' THEN
+        DBMS_OUTPUT.PUT_LINE('Book already returned.');
+    ELSE
+        -- Calculate days late
+        v_days_late := TRUNC(SYSDATE - v_issue_date);
+        
+        -- Fine Calculation
+        IF v_days_late BETWEEN 15 AND 30 THEN
+            v_fine_amt := v_days_late * 5;
+        ELSIF v_days_late > 30 THEN
+            v_fine_amt := (30 * 5) + ((v_days_late - 30) * 50);
+        ELSE
+            v_fine_amt := 0;
+        END IF;
+        
+        -- Update Status to 'R' (Returned)
+        UPDATE Borrower SET Status = 'R' WHERE Rollin = v_roll_no AND NameofBook = v_book_name;
+        
+        -- Store Fine Details if applicable
+        IF v_fine_amt > 0 THEN
+            INSERT INTO Fine (Roll_no, Date, Amt)
+            VALUES (v_roll_no, SYSDATE, v_fine_amt);
+        END IF;
+        
+        -- Display Fine Amount
+        DBMS_OUTPUT.PUT_LINE('Book Returned Successfully.');
+        DBMS_OUTPUT.PUT_LINE('Fine Amount: ' || v_fine_amt);
+    END IF;
+    
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('Error: No records found for the given Roll No and Book.');
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('An unexpected error occurred.');
+END;
+```
+
+---
+
+### **Expected Output**
+```
+Book Returned Successfully.
+Fine Amount: 250.00
+```
+(If the book was late by 25 days, fine = ₹5 per day)
+
+
+
+28  Write a PL/SQL block of code using parameterized Cursor, that will merge the data available in the newly created table N_RollCall with the data available in the table O_RollCall. If the data in the first table already exist in the second table then that data should be skipped. 
+
+Sure! Below is a **PL/SQL block** using a **parameterized cursor** to merge data from `N_RollCall` into `O_RollCall`. If the record already exists in `O_RollCall`, it is skipped.
+
+---
+
+### **Step 1: Create Tables**
+```sql
+CREATE TABLE O_RollCall (
+    RollNo INT PRIMARY KEY,
+    Name VARCHAR(100),
+    Date DATE
+);
+
+CREATE TABLE N_RollCall (
+    RollNo INT PRIMARY KEY,
+    Name VARCHAR(100),
+    Date DATE
+);
+```
+
+---
+
+### **Step 2: Insert Sample Data**
+```sql
+INSERT INTO O_RollCall (RollNo, Name, Date) VALUES (101, 'Tejas', TO_DATE('2025-05-01', 'YYYY-MM-DD'));
+INSERT INTO O_RollCall (RollNo, Name, Date) VALUES (102, 'Aarav', TO_DATE('2025-05-02', 'YYYY-MM-DD'));
+
+INSERT INTO N_RollCall (RollNo, Name, Date) VALUES (102, 'Aarav', TO_DATE('2025-05-02', 'YYYY-MM-DD')); -- Duplicate
+INSERT INTO N_RollCall (RollNo, Name, Date) VALUES (103, 'Riya', TO_DATE('2025-05-03', 'YYYY-MM-DD'));
+```
+
+---
+
+### **Step 3: PL/SQL Block Using Parameterized Cursor**
+```sql
+DECLARE
+    CURSOR c_new_rollcall IS
+        SELECT RollNo, Name, Date FROM N_RollCall;
+    
+    v_rollno N_RollCall.RollNo%TYPE;
+    v_name N_RollCall.Name%TYPE;
+    v_date N_RollCall.Date%TYPE;
+    v_count INT;
+BEGIN
+    OPEN c_new_rollcall;
+    LOOP
+        FETCH c_new_rollcall INTO v_rollno, v_name, v_date;
+        EXIT WHEN c_new_rollcall%NOTFOUND;
+        
+        -- Check if the RollNo already exists in O_RollCall
+        SELECT COUNT(*) INTO v_count FROM O_RollCall WHERE RollNo = v_rollno;
+
+        -- Insert only if it does not exist
+        IF v_count = 0 THEN
+            INSERT INTO O_RollCall (RollNo, Name, Date) 
+            VALUES (v_rollno, v_name, v_date);
+            DBMS_OUTPUT.PUT_LINE('Inserted: ' || v_rollno || ' - ' || v_name);
+        ELSE
+            DBMS_OUTPUT.PUT_LINE('Skipped (Duplicate): ' || v_rollno || ' - ' || v_name);
+        END IF;
+    END LOOP;
+    
+    CLOSE c_new_rollcall;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('No data found in N_RollCall.');
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('An unexpected error occurred.');
+END;
+```
+
+---
+
+### **Expected Output**
+```
+Skipped (Duplicate): 102 - Aarav
+Inserted: 103 - Riya
+```
+
+29  Writ a PL/SQL procedure to find the number of students ranging from 100-70%, 69-60%, 59-50% & below 49% in each course from the student_course table given by the procedure as parameter.
+Schema: Student (ROLL_NO ,COURSE, COURSE_COD ,SEM ,TOTAL_MARKS, PERCENTAGE)
+
+Certainly! Below is a **PL/SQL stored procedure** that calculates the **number of students** falling within specified percentage ranges **for each course**. 
+
+---
+
+### **Step 1: Create Student Table**
+```sql
+CREATE TABLE Student (
+    ROLL_NO INT PRIMARY KEY,
+    COURSE VARCHAR(100),
+    COURSE_COD VARCHAR(20),
+    SEM INT,
+    TOTAL_MARKS DECIMAL(10,2),
+    PERCENTAGE DECIMAL(5,2)
+);
+```
+
+---
+
+### **Step 2: Insert Sample Data**
+```sql
+INSERT INTO Student (ROLL_NO, COURSE, COURSE_COD, SEM, TOTAL_MARKS, PERCENTAGE)
+VALUES 
+(101, 'Computer Science', 'CS101', 5, 500, 85),
+(102, 'Computer Science', 'CS101', 5, 450, 75),
+(103, 'Computer Science', 'CS101', 5, 400, 65),
+(104, 'Computer Science', 'CS101', 5, 350, 55),
+(105, 'Computer Science', 'CS101', 5, 300, 45);
+```
+
+---
+
+### **Step 3: Create PL/SQL Procedure**
+```sql
+CREATE OR REPLACE PROCEDURE Calculate_Student_Percentage (p_course VARCHAR)
+IS
+    v_70_100 INT;
+    v_60_69 INT;
+    v_50_59 INT;
+    v_below_49 INT;
+BEGIN
+    -- Count students based on percentage range for the given course
+    SELECT COUNT(*) INTO v_70_100 FROM Student WHERE PERCENTAGE BETWEEN 70 AND 100 AND COURSE = p_course;
+    SELECT COUNT(*) INTO v_60_69 FROM Student WHERE PERCENTAGE BETWEEN 60 AND 69 AND COURSE = p_course;
+    SELECT COUNT(*) INTO v_50_59 FROM Student WHERE PERCENTAGE BETWEEN 50 AND 59 AND COURSE = p_course;
+    SELECT COUNT(*) INTO v_below_49 FROM Student WHERE PERCENTAGE < 49 AND COURSE = p_course;
+
+    -- Display the results
+    DBMS_OUTPUT.PUT_LINE('Course: ' || p_course);
+    DBMS_OUTPUT.PUT_LINE('Students with 70-100%: ' || v_70_100);
+    DBMS_OUTPUT.PUT_LINE('Students with 60-69%: ' || v_60_69);
+    DBMS_OUTPUT.PUT_LINE('Students with 50-59%: ' || v_50_59);
+    DBMS_OUTPUT.PUT_LINE('Students below 49%: ' || v_below_49);
+END;
+```
+
+---
+
+### **Step 4: Execute the Procedure**
+```sql
+BEGIN
+    Calculate_Student_Percentage('Computer Science');
+END;
+```
+
+---
+
+### **Expected Output**
+```
+Course: Computer Science
+Students with 70-100%: 2
+Students with 60-69%: 1
+Students with 50-59%: 1
+Students below 49%: 1
+```
+
+
+
+30  Write a Stored Procedure namely proc_Grade for the categorization of student. 
+If marks scored by students in examination is <=1500 and marks>=990 then student will 
+be placed in distinction category if marks scored are between 989 and900 category is first 
+class, if marks 899 and 825 category is Higher Second Class .
+
+Consider Schema as Stud_Marks(name, total_marks) and Result(Roll,Name, Class) 
+
+
+
+
+### **Step 1: Create Tables**
+```sql
+CREATE TABLE Stud_Marks (
+    name VARCHAR(100),
+    total_marks INT
+);
+
+CREATE TABLE Result (
+    Roll INT PRIMARY KEY,
+    Name VARCHAR(100),
+    Class VARCHAR(50)
+);
+```
+
+---
+
+### **Step 2: Create the Stored Procedure**
+```sql
+CREATE OR REPLACE PROCEDURE proc_Grade AS
+    CURSOR cur_students IS 
+        SELECT name, total_marks FROM Stud_Marks;
+
+    v_name Stud_Marks.name%TYPE;
+    v_marks Stud_Marks.total_marks%TYPE;
+    v_class VARCHAR(50);
+    v_roll INT := 1; -- Roll number sequence (Assumption)
+BEGIN
+    OPEN cur_students;
+    LOOP
+        FETCH cur_students INTO v_name, v_marks;
+        EXIT WHEN cur_students%NOTFOUND;
+
+        -- Categorize based on marks
+        IF v_marks BETWEEN 990 AND 1500 THEN
+            v_class := 'Distinction';
+        ELSIF v_marks BETWEEN 900 AND 989 THEN
+            v_class := 'First Class';
+        ELSIF v_marks BETWEEN 825 AND 899 THEN
+            v_class := 'Higher Second Class';
+        ELSE
+            v_class := 'No Category';
+        END IF;
+
+        -- Insert into Result Table
+        INSERT INTO Result (Roll, Name, Class) VALUES (v_roll, v_name, v_class);
+        v_roll := v_roll + 1; -- Increment Roll number
+    END LOOP;
+    
+    CLOSE cur_students;
+    DBMS_OUTPUT.PUT_LINE('Student Categorization Completed!');
+EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Error Occurred: ' || SQLERRM);
+END proc_Grade;
+```
+
+---
+
+### **Step 3: Execute the Procedure**
+```sql
+BEGIN
+    proc_Grade;
+END;
+```
+
+---
+
+### **Expected Output in Result Table**
+| Roll | Name  | Class             |
+|------|-------|------------------|
+| 1    | Tejas | Distinction      |
+| 2    | Aarav | First Class      |
+| 3    | Riya  | Higher Second Class |
+
+---
+

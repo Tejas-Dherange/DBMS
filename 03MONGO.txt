@@ -1,0 +1,183 @@
+Implement Map reduce operation with following example using MongoDB
+Students(stud_id, stud_name,stud_addr,stud_marks) 
+
+### **Step 1: Sample Data**
+Assuming we have a **Students** collection with documents structured like this:
+
+```json
+{
+    "stud_id": 1,
+    "stud_name": "Alice",
+    "stud_addr": "New York",
+    "stud_marks": 85
+},
+{
+    "stud_id": 2,
+    "stud_name": "Bob",
+    "stud_addr": "California",
+    "stud_marks": 90
+},
+{
+    "stud_id": 3,
+    "stud_name": "Charlie",
+    "stud_addr": "New York",
+    "stud_marks": 78
+}
+```
+
+---
+
+### **Step 2: Map Function**
+The **map function** emits key-value pairs where the key is the student's address and the value is the marks.
+
+```javascript
+var mapFunction = function() {
+    emit(this.stud_addr, this.stud_marks);
+};
+```
+
+---
+
+### **Step 3: Reduce Function**
+The **reduce function** calculates the average marks per student address.
+
+```javascript
+var reduceFunction = function(key, values) {
+    var sum = values.reduce((acc, val) => acc + val, 0);
+    return sum / values.length;
+};
+```
+
+---
+
+### **Step 4: Executing MapReduce in MongoDB**
+Use the **mapReduce()** method:
+
+```javascript
+db.Students.mapReduce(
+    mapFunction,
+    reduceFunction,
+    { out: "average_marks_per_address" }
+);
+```
+
+---
+
+### **Step 5: Retrieving Results**
+To see the results stored in the new collection:
+
+```javascript
+db.average_marks_per_address.find().pretty();
+```
+
+---
+
+### **Expected Output**
+After running MapReduce, the output might look like:
+
+```json
+{
+    "_id": "New York",
+    "value": 81.5
+},
+{
+    "_id": "California",
+    "value": 90
+}
+```
+
+Q23 Implement all Aggregation operations and types of indexing with following collection using MongoDB. 
+Employee(emp_id, emp_name,emp_dept,salary)
+
+
+## **1. Aggregation Operations**
+
+### **a) $match → Filter employees from a specific department**
+```javascript
+db.Employee.aggregate([
+    { $match: { emp_dept: "HR" } }
+]);
+```
+
+### **b) $group → Group employees by department and calculate average salary**
+```javascript
+db.Employee.aggregate([
+    { $group: { _id: "$emp_dept", avg_salary: { $avg: "$salary" } } }
+]);
+```
+
+### **c) $sort → Sort employees by salary in descending order**
+```javascript
+db.Employee.aggregate([
+    { $sort: { salary: -1 } }
+]);
+```
+
+### **d) $project → Display only employee name and salary**
+```javascript
+db.Employee.aggregate([
+    { $project: { emp_name: 1, salary: 1, _id: 0 } }
+]);
+```
+
+### **e) $lookup → Perform a join with another collection (e.g., Department)**
+```javascript
+db.Employee.aggregate([
+    {
+        $lookup: {
+            from: "Department",
+            localField: "emp_dept",
+            foreignField: "dept_name",
+            as: "dept_details"
+        }
+    }
+]);
+```
+
+---
+
+## **2. Types of Indexing in MongoDB**
+
+### **a) Single-field Index**
+Improves query performance on a single field (e.g., `emp_id`):
+```javascript
+db.Employee.createIndex({ emp_id: 1 });
+```
+
+### **b) Compound Index**
+Optimizes queries using multiple fields together (e.g., `emp_dept` and `salary`):
+```javascript
+db.Employee.createIndex({ emp_dept: 1, salary: -1 });
+```
+
+### **c) Text Index**
+Used for full-text search on fields like `emp_name`:
+```javascript
+db.Employee.createIndex({ emp_name: "text" });
+```
+
+### **d) Multikey Index**
+If `emp_skills` is an array field, indexing it improves searches for individual elements:
+```javascript
+db.Employee.createIndex({ emp_skills: 1 });
+```
+
+### **e) Geospatial Index**
+For queries involving **location-based data** (if `location` stores coordinates):
+```javascript
+db.Employee.createIndex({ location: "2dsphere" });
+```
+
+---
+
+This covers **Aggregation** and **Indexing** in MongoDB for your **Employee** collection. 🚀
+
+Would you like any modifications or additional queries? 🔥
+
+Q 25  Design and Implement any 5 query using MongoDB
+1.	Create a collection called ‘games’.
+2.	Add 5 games to the database. Give each document the following properties: name, gametype, score (out of 100), achievements
+3.	Write a query that returns all the games
+4.	Write a query that returns the 3 highest scored games.
+5.	Write a query that returns all the games that have both the ‘Game Maser’ and
+the ‘Speed Demon’ achievements.
