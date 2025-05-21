@@ -184,3 +184,178 @@ Q 25  Design and Implement any 5 query using MongoDB
 the ‘Speed Demon’ achievements.
 
 
+32.Create database  :Citydetails(_id,name,area,population(total,Adults,seniorcitizens,sexratio), geography (avgtemp, avgrainfall, longitude, latitude))
+
+
+1.	Find area wise total population and sort them in increasing order.
+2.	Retrieve name and area where average rain fall is greater than 60
+3.	Create index on city and area find the max population in Mumbai
+4.	Create index on name.
+# MongoDB Solution for CityDetails Database
+
+## 1. Create the CityDetails Database and Collection
+
+```javascript
+use CityDetails;
+
+db.createCollection("cities", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["_id", "name", "area", "population", "geography"],
+      properties: {
+        _id: { bsonType: "objectId" },
+        name: { bsonType: "string" },
+        area: { bsonType: "number" },
+        population: {
+          bsonType: "object",
+          required: ["total", "Adults", "seniorcitizens", "sexratio"],
+          properties: {
+            total: { bsonType: "number" },
+            Adults: { bsonType: "number" },
+            seniorcitizens: { bsonType: "number" },
+            sexratio: { bsonType: "number" }
+          }
+        },
+        geography: {
+          bsonType: "object",
+          required: ["avgtemp", "avgrainfall", "longitude", "latitude"],
+          properties: {
+            avgtemp: { bsonType: "number" },
+            avgrainfall: { bsonType: "number" },
+            longitude: { bsonType: "number" },
+            latitude: { bsonType: "number" }
+          }
+        }
+      }
+    }
+  }
+});
+```
+
+## 2. Insert Sample Data
+
+```javascript
+db.cities.insertMany([
+  {
+    name: "Mumbai",
+    area: 603.4,
+    population: {
+      total: 12442373,
+      Adults: 8500000,
+      seniorcitizens: 1200000,
+      sexratio: 922
+    },
+    geography: {
+      avgtemp: 27.5,
+      avgrainfall: 242.2,
+      longitude: 72.8777,
+      latitude: 19.0760
+    }
+  },
+  {
+    name: "Delhi",
+    area: 1484.0,
+    population: {
+      total: 11007835,
+      Adults: 7500000,
+      seniorcitizens: 900000,
+      sexratio: 868
+    },
+    geography: {
+      avgtemp: 25.0,
+      avgrainfall: 797.3,
+      longitude: 77.1025,
+      latitude: 28.7041
+    }
+  },
+  {
+    name: "Bangalore",
+    area: 709.0,
+    population: {
+      total: 8436675,
+      Adults: 6000000,
+      seniorcitizens: 800000,
+      sexratio: 916
+    },
+    geography: {
+      avgtemp: 23.5,
+      avgrainfall: 859.6,
+      longitude: 77.5946,
+      latitude: 12.9716
+    }
+  }
+]);
+```
+
+## 3. Solutions to the Queries
+
+### 1. Find area-wise total population and sort them in increasing order
+
+```javascript
+db.cities.aggregate([
+  {
+    $project: {
+      name: 1,
+      area: 1,
+      totalPopulation: "$population.total"
+    }
+  },
+  {
+    $sort: {
+      totalPopulation: 1
+    }
+  }
+]);
+```
+
+### 2. Retrieve name and area where average rainfall is greater than 60
+
+```javascript
+db.cities.find(
+  { "geography.avgrainfall": { $gt: 60 } },
+  { name: 1, area: 1, "geography.avgrainfall": 1, _id: 0 }
+);
+```
+
+### 3. Create index on city and area, then find max population in Mumbai
+
+```javascript
+// Create compound index on name and area
+db.cities.createIndex({ name: 1, area: 1 });
+
+// Find max population in Mumbai
+db.cities.aggregate([
+  { $match: { name: "Mumbai" } },
+  { $group: { _id: null, maxPopulation: { $max: "$population.total" } } }
+]);
+```
+
+### 4. Create index on name
+
+```javascript
+db.cities.createIndex({ name: 1 });
+```
+
+## Additional MongoDB Operations
+
+### To view all indexes:
+
+```javascript
+db.cities.getIndexes();
+```
+
+### To drop an index:
+
+```javascript
+db.cities.dropIndex("name_1");
+```
+
+### To update a document:
+
+```javascript
+db.cities.updateOne(
+  { name: "Mumbai" },
+  { $set: { "population.total": 12500000 } }
+);
+```

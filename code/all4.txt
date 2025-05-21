@@ -1,0 +1,225 @@
+
+## 27. Library Fine Calculation (Similar to #9)
+
+## 28. Parameterized Cursor for RollCall Merge
+
+```sql
+CREATE OR REPLACE PROCEDURE merge_rollcall_data AS
+    CURSOR new_rollcall_cur IS
+        SELECT * FROM N_RollCall;
+        
+    v_exists NUMBER;
+BEGIN
+    FOR new_rec IN new_rollcall_cur LOOP
+        -- Check if record exists in old table
+        SELECT COUNT(*) INTO v_exists
+        FROM O_RollCall
+        WHERE roll_no = new_rec.roll_no
+        AND name = new_rec.name
+        AND other_key_fields = new_rec.other_key_fields;
+        
+        -- Insert only if record doesn't exist
+        IF v_exists = 0 THEN
+            INSERT INTO O_RollCall
+            VALUES (new_rec.roll_no, new_rec.name, new_rec.other_columns);
+            
+            DBMS_OUTPUT.PUT_LINE('Inserted record for ' || new_rec.name);
+        ELSE
+            DBMS_OUTPUT.PUT_LINE('Skipped existing record for ' || new_rec.name);
+        END IF;
+    END LOOP;
+    COMMIT;
+END;
+/
+```
+
+## 29. Student Percentage Ranges Procedure
+
+```sql
+CREATE OR REPLACE PROCEDURE student_percentage_ranges(p_course IN VARCHAR2) AS
+    TYPE range_rec IS RECORD (
+        range_desc VARCHAR2(20),
+        min_pct NUMBER,
+        max_pct NUMBER,
+        student_count NUMBER
+    );
+    
+    TYPE range_array IS TABLE OF range_rec INDEX BY BINARY_INTEGER;
+    
+    v_ranges range_array;
+    v_total_students NUMBER := 0;
+BEGIN
+    -- Define percentage ranges
+    v_ranges(1).range_desc := '100-70%';
+    v_ranges(1).min_pct := 70;
+    v_ranges(1).max_pct := 100;
+    v_ranges(1).student_count := 0;
+    
+    v_ranges(2).range_desc := '69-60%';
+    v_ranges(2).min_pct := 60;
+    v_ranges(2).max_pct := 69.99;
+    v_ranges(2).student_count := 0;
+    
+    v_ranges(3).range_desc := '59-50%';
+    v_ranges(3).min_pct := 50;
+    v_ranges(3).max_pct := 59.99;
+    v_ranges(3).student_count := 0;
+    
+    v_ranges(4).range_desc := 'Below 49%';
+    v_ranges(4).min_pct := 0;
+    v_ranges(4).max_pct := 49.99;
+    v_ranges(4).student_count := 0;
+    
+    -- Count students in each range
+    FOR i IN 1..4 LOOP
+        SELECT COUNT(*) INTO v_ranges(i).student_count
+        FROM Student
+        WHERE COURSE = p_course
+        AND PERCENTAGE BETWEEN v_ranges(i).min_pct AND v_ranges(i).max_pct;
+        
+        v_total_students := v_total_students + v_ranges(i).student_count;
+    END LOOP;
+    
+    -- Display results
+    DBMS_OUTPUT.PUT_LINE('Course: ' || p_course);
+    DBMS_OUTPUT.PUT_LINE('Total Students: ' || v_total_students);
+    DBMS_OUTPUT.PUT_LINE('-------------------------------');
+    
+    FOR i IN 1..4 LOOP
+        DBMS_OUTPUT.PUT_LINE(
+            RPAD(v_ranges(i).range_desc, 10) || ': ' || 
+            v_ranges(i).student_count || ' students (' ||
+            ROUND((v_ranges(i).student_count / v_total_students) * 100, 2) || '%)'
+        );
+    END LOOP;
+END;
+/
+```
+
+## 30. Student Grade Categorization Procedure
+
+```sql
+CREATE OR REPLACE PROCEDURE proc_Grade AS
+    v_class VARCHAR2(50);
+BEGIN
+    FOR stud_rec IN (SELECT name, total_marks FROM Stud_Marks) LOOP
+        IF stud_rec.total_marks BETWEEN 990 AND 1500 THEN
+            v_class := 'Distinction';
+        ELSIF stud_rec.total_marks BETWEEN 900 AND 989 THEN
+            v_class := 'First Class';
+        ELSIF stud_rec.total_marks BETWEEN 825 AND 899 THEN
+            v_class := 'Higher Second Class';
+        ELSE
+            v_class := 'Below Higher Second';
+        END IF;
+        
+        INSERT INTO Result(Roll, Name, Class)
+        VALUES (stud_rec.Roll, stud_rec.name, v_class);
+    END LOOP;
+    COMMIT;
+END;
+/
+```
+
+## 31-32. CityDetails Database Queries
+
+```javascript
+// MongoDB implementation
+db.createCollection("citydetails");
+
+db.citydetails.insertMany([
+    {
+        _id: 1,
+        name: "Pune",
+        area: 700,
+        population: {
+            total: 3124458,
+            Adults: 2200000,
+            seniorcitizens: 350000,
+            sexratio: 925
+        },
+        geography: {
+            avgtemp: 24.5,
+            avgrainfall: 722,
+            longitude: 73.8567,
+            latitude: 18.5204
+        }
+    },
+    {
+        _id: 2,
+        name: "Mumbai",
+        area: 603,
+        population: {
+            total: 12442373,
+            Adults: 9000000,
+            seniorcitizens: 1200000,
+            sexratio: 922
+        },
+        geography: {
+            avgtemp: 27.5,
+            avgrainfall: 242,
+            longitude: 72.8777,
+            latitude: 19.0760
+        }
+    }
+]);
+
+// 1. Total population in Pune
+db.citydetails.aggregate([
+    {$match: {name: "Pune"}},
+    {$project: {_id: 0, name: 1, total_population: "$population.total"}}
+]);
+
+// 2. Cities with population > 10 million
+db.citydetails.find({"population.total": {$gt: 10000000}});
+
+// 3. Average population by city
+db.citydetails.aggregate([
+    {$group: {
+        _id: "$name",
+        avg_population: {$avg: "$population.total"}
+    }}
+]);
+
+// 4. Min and max population cities
+db.citydetails.aggregate([
+    {$group: {
+        _id: null,
+        min_population: {$min: "$population.total"},
+        max_population: {$max: "$population.total"},
+        min_city: {$first: "$name"},
+        max_city: {$last: "$name"}
+    }},
+    {$sort: {"population.total": 1}}
+]);
+
+// 5. Area-wise population sorted
+db.citydetails.aggregate([
+    {$project: {
+        name: 1,
+        area: 1,
+        total_population: "$population.total",
+        density: {$divide: ["$population.total", "$area"]}
+    }},
+    {$sort: {total_population: 1}}
+]);
+
+// 6. Cities with rainfall > 60
+db.citydetails.find(
+    {"geography.avgrainfall": {$gt: 60}},
+    {name: 1, area: 1, "geography.avgrainfall": 1, _id: 0}
+);
+
+// 7. Create indexes
+db.citydetails.createIndex({name: 1, area: 1});
+db.citydetails.createIndex({name: 1});
+
+// 8. Max population in Mumbai
+db.citydetails.aggregate([
+    {$match: {name: "Mumbai"}},
+    {$group: {
+        _id: "$name",
+        max_population: {$max: "$population.total"}
+    }}
+]);
+```

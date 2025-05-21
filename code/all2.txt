@@ -1,0 +1,288 @@
+
+## 11. SQL DML Examples
+
+```sql
+-- 1. Inner Join
+SELECT e.Name, d.Name AS Department
+FROM Employee e JOIN Department d ON e.DeptId = d.DeptId;
+
+-- 2. Left Join
+SELECT c.Name, a.AcctNo, a.Balance
+FROM Customer c LEFT JOIN Account a ON c.CustomerId = a.CustomerId;
+
+-- 3. Right Join
+SELECT b.Name, l.LoanNo, l.Amount
+FROM Branch b RIGHT JOIN Loan l ON b.BranchId = l.BranchId;
+
+-- 4. Full Outer Join
+SELECT d.Name, COUNT(e.EmployeeId) AS EmployeeCount
+FROM Department d FULL OUTER JOIN Employee e ON d.DeptId = e.DeptId
+GROUP BY d.Name;
+
+-- 5. Self Join
+SELECT e1.Name AS Employee, e2.Name AS Manager
+FROM Employee e1 JOIN Employee e2 ON e1.ManagerId = e2.EmployeeId;
+
+-- 6. Subquery with IN
+SELECT Name FROM Customer
+WHERE CustomerId IN (SELECT CustomerId FROM Account WHERE Balance > 10000);
+
+-- 7. Subquery with EXISTS
+SELECT b.Name FROM Branch b
+WHERE EXISTS (SELECT 1 FROM Loan l WHERE l.BranchId = b.BranchId AND l.Amount > 50000);
+
+-- 8. Correlated Subquery
+SELECT e.Name, e.Salary
+FROM Employee e
+WHERE e.Salary > (SELECT AVG(Salary) FROM Employee WHERE DeptId = e.DeptId);
+
+-- 9. View usage
+SELECT * FROM CustomerAccountView WHERE Balance > 5000;
+
+-- 10. Union
+SELECT Name FROM Customer
+UNION
+SELECT Name FROM Employee;
+```
+
+## 12. MongoDB Indexing and Querying
+
+```javascript
+// Create collection
+db.createCollection("students");
+
+// Insert sample data
+db.students.insertMany([
+    {stud_id: 1, stud_name: "John Doe", stud_addr: "123 Main St", stud_marks: 85},
+    {stud_id: 2, stud_name: "Jane Smith", stud_addr: "456 Oak Ave", stud_marks: 92},
+    {stud_id: 3, stud_name: "Bob Johnson", stud_addr: "789 Pine Rd", stud_marks: 78}
+]);
+
+// Create index
+db.students.createIndex({stud_id: 1});
+
+// Query examples
+// 1. Find student by ID
+db.students.find({stud_id: 1});
+
+// 2. Find students with marks > 80
+db.students.find({stud_marks: {$gt: 80}});
+
+// 3. Sort students by marks descending
+db.students.find().sort({stud_marks: -1});
+
+// 4. Count students
+db.students.countDocuments();
+
+// 5. Update student address
+db.students.updateOne(
+    {stud_id: 1},
+    {$set: {stud_addr: "321 Elm St"}}
+);
+```
+
+## 13. COMPANY Database Queries
+
+```sql
+-- 1. Projects in Stafford with manager details
+SELECT p.Pnumber, p.Dno, e.Lname, e.Address, e.Bdate
+FROM PROJECT p
+JOIN DEPARTEMENT d ON p.Dno = d.Dno
+JOIN EMPLOYEE e ON d.Mgr_ssn = e.Ssn
+WHERE p.Plocation = 'Stafford';
+
+-- 2. Projects involving Smith
+SELECT DISTINCT p.Pnumber
+FROM PROJECT p
+LEFT JOIN WORKS_ON w ON p.Pnumber = w.Pno
+LEFT JOIN EMPLOYEE e1 ON w.Essn = e1.Ssn
+LEFT JOIN DEPARTEMENT d ON p.Dno = d.Dno
+LEFT JOIN EMPLOYEE e2 ON d.Mgr_ssn = e2.Ssn
+WHERE e1.Lname = 'Smith' OR e2.Lname = 'Smith';
+
+-- 3. Employees in Houston
+SELECT Fname, Lname FROM EMPLOYEE
+WHERE Address LIKE '%Houston, TX%';
+
+-- 4. Salary after 10% raise for ProductX workers
+SELECT e.Fname, e.Lname, e.Salary AS Current_Salary, 
+       e.Salary * 1.1 AS Proposed_Salary
+FROM EMPLOYEE e
+JOIN WORKS_ON w ON e.Ssn = w.Essn
+JOIN PROJECT p ON w.Pno = p.Pnumber
+WHERE p.Pname = 'ProductX';
+```
+
+## 14-15. Bank Schema DML Operations
+
+```sql
+-- 1. Average account balance by branch
+SELECT b.branch_name, AVG(a.balance) AS avg_balance
+FROM branch b
+JOIN Account a ON b.branch_name = a.branch_name
+GROUP BY b.branch_name;
+
+-- 2. Number of depositors by branch
+SELECT b.branch_name, COUNT(DISTINCT d.cust_name) AS depositor_count
+FROM branch b
+JOIN Account a ON b.branch_name = a.branch_name
+JOIN Depositor d ON a.acc_no = d.acc_no
+GROUP BY b.branch_name;
+
+-- 3. Branches with avg balance > 12000
+SELECT b.branch_name, AVG(a.balance) AS avg_balance
+FROM branch b
+JOIN Account a ON b.branch_name = a.branch_name
+GROUP BY b.branch_name
+HAVING AVG(a.balance) > 12000;
+
+-- 4. Total customer count
+SELECT COUNT(*) AS customer_count FROM customer;
+
+-- 5. Customers with both account and loan
+SELECT c.cust_name
+FROM customer c
+WHERE EXISTS (SELECT 1 FROM Depositor d WHERE d.cust_name = c.cust_name)
+AND EXISTS (SELECT 1 FROM Borrower b WHERE b.cust_name = c.cust_name);
+
+-- 6. Delete loans between 1300 and 1500
+DELETE FROM Loan
+WHERE amount BETWEEN 1300 AND 1500;
+
+-- 7. Total loan amount
+SELECT SUM(amount) AS total_loans FROM Loan;
+```
+
+## 16. MongoDB MapReduce for Student Marks
+
+```javascript
+// Map function
+var mapFunction = function() {
+    emit(this.stud_id, this.stud_marks);
+};
+
+// Reduce function
+var reduceFunction = function(key, values) {
+    return Array.sum(values);
+};
+
+// MapReduce execution
+db.students.mapReduce(
+    mapFunction,
+    reduceFunction,
+    {out: "student_totals"}
+);
+
+// PL/SQL for marks calculation
+CREATE OR REPLACE PROCEDURE calculate_student_percentage AS
+    v_total NUMBER;
+    v_percentage NUMBER;
+BEGIN
+    FOR stud_rec IN (SELECT stud_id, m1, m2, m3, m4 FROM student_marks) LOOP
+        v_total := stud_rec.m1 + stud_rec.m2 + stud_rec.m3 + stud_rec.m4;
+        v_percentage := (v_total / 400) * 100;
+        
+        UPDATE student_results
+        SET total_marks = v_total, percentage = v_percentage
+        WHERE stud_id = stud_rec.stud_id;
+    END LOOP;
+    COMMIT;
+END;
+/
+```
+
+## 17. MongoDB CRUD for Orders
+
+```javascript
+// Create
+db.orders.insertMany([
+    {cust_id: 1, amount: 100, status: "pending"},
+    {cust_id: 2, amount: 250, status: "shipped"},
+    {cust_id: 3, amount: 75, status: "delivered"}
+]);
+
+// Read
+db.orders.find({status: "shipped"});
+
+// Update
+db.orders.updateOne(
+    {cust_id: 1},
+    {$set: {status: "processed"}}
+);
+
+// Delete
+db.orders.deleteOne({cust_id: 3});
+```
+
+## 18-19. Advanced Bank Queries
+
+```sql
+-- 1. Customers with account or loan or both
+SELECT DISTINCT c.cust_name
+FROM customer c
+LEFT JOIN Depositor d ON c.cust_name = d.cust_name
+LEFT JOIN Borrower b ON c.cust_name = b.cust_name
+WHERE d.acc_no IS NOT NULL OR b.loan_no IS NOT NULL;
+
+-- 2. Customers with account but no loan
+SELECT c.cust_name
+FROM customer c
+JOIN Depositor d ON c.cust_name = d.cust_name
+LEFT JOIN Borrower b ON c.cust_name = b.cust_name
+WHERE b.loan_no IS NULL;
+
+-- 3. Average balance at Akurdi branch
+SELECT AVG(balance) AS avg_balance
+FROM Account
+WHERE branch_name = 'Akurdi';
+```
+
+## 20-22. Deposit/Borrow System Implementation
+
+```sql
+-- Create tables with constraints
+CREATE TABLE Customers (
+    cname VARCHAR(100) PRIMARY KEY,
+    city VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE Branch (
+    bname VARCHAR(100) PRIMARY KEY,
+    city VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE Deposit (
+    actno INT PRIMARY KEY,
+    cname VARCHAR(100) REFERENCES Customers(cname),
+    bname VARCHAR(100) REFERENCES Branch(bname),
+    amount DECIMAL(10,2),
+    adate DATE
+);
+
+CREATE TABLE Borrow (
+    loanno INT PRIMARY KEY,
+    cname VARCHAR(100) REFERENCES Customers(cname),
+    bname VARCHAR(100) REFERENCES Branch(bname),
+    amount DECIMAL(10,2)
+);
+
+-- Sample queries
+-- 1. Account date of customer "ABC"
+SELECT adate FROM Deposit WHERE cname = 'ABC';
+
+-- 2. Modify amount column size
+ALTER TABLE Deposit MODIFY amount DECIMAL(12,2);
+
+-- 3. Customers in Pune
+SELECT cname FROM Customers WHERE city = 'Pune';
+
+-- 4. City of OBC branch
+SELECT city FROM Branch WHERE bname = 'OBC';
+
+-- 5. Customers in Bombay with branch in Nagpur
+SELECT d.cname 
+FROM Deposit d
+JOIN Customers c ON d.cname = c.cname
+JOIN Branch b ON d.bname = b.bname
+WHERE c.city = 'Bombay' AND b.city = 'Nagpur';
+```

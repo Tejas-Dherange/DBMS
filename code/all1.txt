@@ -1,0 +1,344 @@
+# Comprehensive Solutions for DBMS Practice Problems
+
+Here's a complete list of solutions for all the database problems in your document:
+
+## 1. Bank Database ER Diagram and Implementation
+
+```sql
+-- Entities: Customer, Account, Branch, Loan, Transaction
+CREATE TABLE Customer (
+    CustomerId INT PRIMARY KEY,
+    Name VARCHAR(100) NOT NULL,
+    Address VARCHAR(200),
+    Phone VARCHAR(15),
+    Email VARCHAR(100)
+);
+
+CREATE TABLE Branch (
+    BranchId INT PRIMARY KEY,
+    Name VARCHAR(100) NOT NULL,
+    Address VARCHAR(200),
+    City VARCHAR(50)
+);
+
+CREATE TABLE Account (
+    AcctNo INT PRIMARY KEY,
+    CustomerId INT REFERENCES Customer(CustomerId),
+    BranchId INT REFERENCES Branch(BranchId),
+    Type VARCHAR(20) CHECK (Type IN ('Savings', 'Current', 'Fixed')),
+    Balance DECIMAL(15,2) DEFAULT 0,
+    OpenDate DATE
+);
+
+CREATE SEQUENCE AcctNo_Seq START WITH 1001 INCREMENT BY 1;
+
+CREATE INDEX CustomerId_Idx ON Customer(CustomerId, Name ASC);
+
+-- View 1: Customer with Account Details
+CREATE VIEW CustomerAccountView AS
+SELECT c.CustomerId, c.Name, a.AcctNo, a.Type, a.Balance
+FROM Customer c JOIN Account a ON c.CustomerId = a.CustomerId;
+
+-- View 2: Branch with Total Deposits
+CREATE VIEW BranchDepositView AS
+SELECT b.BranchId, b.Name, SUM(a.Balance) AS TotalDeposits
+FROM Branch b JOIN Account a ON b.BranchId = a.BranchId
+GROUP BY b.BranchId, b.Name;
+```
+
+## 2. Company Database ER Diagram and Implementation
+
+```sql
+-- Entities: Employee, Department, Project, Dependent
+CREATE TABLE Department (
+    DeptId INT PRIMARY KEY,
+    Name VARCHAR(100) NOT NULL,
+    Location VARCHAR(100)
+);
+
+CREATE TABLE Employee (
+    EmployeeId INT PRIMARY KEY,
+    Name VARCHAR(100) NOT NULL,
+    DeptId INT REFERENCES Department(DeptId),
+    Position VARCHAR(50),
+    Salary DECIMAL(10,2),
+    HireDate DATE
+);
+
+CREATE SEQUENCE EmployeeId_Seq START WITH 1001 INCREMENT BY 1;
+
+CREATE INDEX EmployeeId_Idx ON Employee(DeptId ASC, EmployeeId ASC);
+
+-- View 1: Department with Employee Count
+CREATE VIEW DeptEmployeeView AS
+SELECT d.DeptId, d.Name, COUNT(e.EmployeeId) AS EmployeeCount
+FROM Department d LEFT JOIN Employee e ON d.DeptId = e.DeptId
+GROUP BY d.DeptId, d.Name;
+
+-- View 2: Employee with Department Details
+CREATE VIEW EmployeeDeptView AS
+SELECT e.EmployeeId, e.Name, d.Name AS Department, e.Position, e.Salary
+FROM Employee e JOIN Department d ON e.DeptId = d.DeptId;
+```
+
+## 3. Library Triggers (Solution provided in previous response)
+
+## 4. Library Audit Trigger
+
+```sql
+CREATE OR REPLACE TRIGGER library_audit_trigger
+BEFORE UPDATE OR DELETE ON Library
+FOR EACH ROW
+BEGIN
+    IF UPDATING THEN
+        INSERT INTO Library_Audit (bid, bname, noc, timestampofquery, action)
+        VALUES (:OLD.bid, :OLD.bname, :OLD.noc, SYSTIMESTAMP, 'UPDATE');
+    ELSIF DELETING THEN
+        INSERT INTO Library_Audit (bid, bname, noc, timestampofquery, action)
+        VALUES (:OLD.bid, :OLD.bname, :OLD.noc, SYSTIMESTAMP, 'DELETE');
+    END IF;
+END;
+/
+```
+
+## 5. MongoDB MapReduce for Site Access Count
+
+```javascript
+// Create collection
+db.createCollection("sites");
+
+// Map function
+var mapFunction = function() {
+    var month = this.dateofaccess.getMonth() + 1;
+    var year = this.dateofaccess.getFullYear();
+    emit(this.url + "_" + year + "-" + month, 1);
+};
+
+// Reduce function
+var reduceFunction = function(key, values) {
+    return Array.sum(values);
+};
+
+// Run MapReduce
+db.sites.mapReduce(
+    mapFunction,
+    reduceFunction,
+    {
+        out: "site_access_counts"
+    }
+);
+
+// Query results
+db.site_access_counts.find().sort({value: -1});
+```
+
+## 6. City Population Density Procedure
+
+```sql
+CREATE OR REPLACE PROCEDURE calculate_population_density AS
+    v_density NUMBER;
+    v_city_name VARCHAR2(100);
+    v_population NUMBER;
+    v_area NUMBER;
+    v_type VARCHAR2(20);
+BEGIN
+    FOR city_rec IN (SELECT pincode, nameofcity, population, area FROM CitiesIndia) LOOP
+        -- Calculate population density (people per square km)
+        v_density := city_rec.population / city_rec.area;
+        
+        -- Determine city type based on density
+        IF city_rec.population < 10 OR city_rec.population > 25718 THEN
+            DBMS_OUTPUT.PUT_LINE('Error: Invalid population for city ' || city_rec.nameofcity);
+        ELSIF v_density > 3000 THEN
+            v_type := 'High Density';
+        ELSIF v_density BETWEEN 1000 AND 2999 THEN
+            v_type := 'Moderate';
+        ELSE
+            v_type := 'Low Density';
+        END IF;
+        
+        -- Update or insert into Categories table
+        MERGE INTO Categories c
+        USING (SELECT city_rec.pincode AS pincode FROM dual) src
+        ON (c.pincode = src.pincode)
+        WHEN MATCHED THEN
+            UPDATE SET c.Type = v_type
+        WHEN NOT MATCHED THEN
+            INSERT (Type, pincode) VALUES (v_type, city_rec.pincode);
+    END LOOP;
+    COMMIT;
+END;
+/
+```
+
+## 7. Student Class Calculation Procedure
+
+```sql
+CREATE OR REPLACE PROCEDURE calculate_student_class AS
+    v_total NUMBER;
+    v_class VARCHAR2(20);
+BEGIN
+    FOR student_rec IN (SELECT rollno, name, Marks1, Marks2, Marks3, Marks4, Marks5 FROM Student) LOOP
+        -- Validate marks
+        IF student_rec.Marks1 < 0 OR student_rec.Marks1 > 100 OR
+           student_rec.Marks2 < 0 OR student_rec.Marks2 > 100 OR
+           student_rec.Marks3 < 0 OR student_rec.Marks3 > 100 OR
+           student_rec.Marks4 < 0 OR student_rec.Marks4 > 100 OR
+           student_rec.Marks5 < 0 OR student_rec.Marks5 > 100 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Invalid marks for student ' || student_rec.rollno);
+        END IF;
+        
+        -- Calculate total
+        v_total := student_rec.Marks1 + student_rec.Marks2 + student_rec.Marks3 + 
+                  student_rec.Marks4 + student_rec.Marks5;
+        
+        -- Determine class
+        IF v_total BETWEEN 990 AND 1499 THEN
+            v_class := 'Distinction';
+        ELSIF v_total BETWEEN 900 AND 989 THEN
+            v_class := 'First Class';
+        ELSIF v_total BETWEEN 825 AND 899 THEN
+            v_class := 'Higher Second';
+        ELSIF v_total BETWEEN 750 AND 824 THEN
+            v_class := 'Second';
+        ELSE
+            v_class := 'Pass';
+        END IF;
+        
+        -- Insert into Result table
+        INSERT INTO Result (RollNo, total_marks, class)
+        VALUES (student_rec.rollno, v_total, v_class);
+    END LOOP;
+    COMMIT;
+END;
+/
+```
+
+## 8. Library Database ER Diagram and Implementation
+
+```sql
+-- Entities: Book, Author, Borrower, Loan, Publisher
+CREATE TABLE Author (
+    AuthorId INT PRIMARY KEY,
+    Name VARCHAR(100) NOT NULL,
+    Nationality VARCHAR(50)
+);
+
+CREATE TABLE Publisher (
+    PublisherId INT PRIMARY KEY,
+    Name VARCHAR(100) NOT NULL,
+    Address VARCHAR(200))
+);
+
+CREATE TABLE Book (
+    BookId INT PRIMARY KEY,
+    Title VARCHAR(200) NOT NULL,
+    AuthorId INT REFERENCES Author(AuthorId),
+    PublisherId INT REFERENCES Publisher(PublisherId),
+    ISBN VARCHAR(20),
+    PublicationYear INT,
+    CopiesAvailable INT DEFAULT 0
+);
+
+CREATE SEQUENCE BookId_Seq START WITH 1001 INCREMENT BY 1;
+
+CREATE INDEX Lib_Index1 ON Author(Name ASC);
+
+-- View 1: Book with Author Details
+CREATE VIEW BookAuthorView AS
+SELECT b.BookId, b.Title, a.Name AS Author, p.Name AS Publisher
+FROM Book b 
+JOIN Author a ON b.AuthorId = a.AuthorId
+JOIN Publisher p ON b.PublisherId = p.PublisherId;
+
+-- View 2: Available Books
+CREATE VIEW AvailableBooksView AS
+SELECT BookId, Title, CopiesAvailable
+FROM Book
+WHERE CopiesAvailable > 0;
+```
+
+## 9. Library Fine Calculation PL/SQL Block
+
+```sql
+DECLARE
+    v_roll_no Borrower.Rollin%TYPE := &roll_no;
+    v_book_name Borrower.NameofBook%TYPE := '&book_name';
+    v_doi DATE;
+    v_days NUMBER;
+    v_fine NUMBER := 0;
+    v_status Borrower.Status%TYPE;
+    v_bid Library.bid%TYPE;
+BEGIN
+    -- Get book issue details
+    SELECT doi, status, bid INTO v_doi, v_status, v_bid
+    FROM Borrower
+    WHERE Rollin = v_roll_no AND NameofBook = v_book_name;
+    
+    -- Calculate days since issue
+    v_days := TRUNC(SYSDATE) - TRUNC(v_doi);
+    
+    -- Calculate fine if overdue
+    IF v_days > 30 THEN
+        v_fine := (v_days - 30) * 50 + 15 * 5; -- Rs 50/day after 30 days + Rs 5/day for 15-30 days
+    ELSIF v_days BETWEEN 15 AND 30 THEN
+        v_fine := (v_days - 14) * 5; -- Rs 5/day for days 15-30
+    END IF;
+    
+    -- Update book status to Returned
+    UPDATE Borrower SET Status = 'R' 
+    WHERE Rollin = v_roll_no AND NameofBook = v_book_name;
+    
+    -- Update library copies
+    UPDATE Library SET noc = noc + 1, status = 'AVAILABLE'
+    WHERE bid = v_bid;
+    
+    -- Insert fine record if applicable
+    IF v_fine > 0 THEN
+        INSERT INTO Fine (Roll_no, Date, Amt)
+        VALUES (v_roll_no, SYSDATE, v_fine);
+    END IF;
+    
+    COMMIT;
+    
+    DBMS_OUTPUT.PUT_LINE('Book returned successfully.');
+    IF v_fine > 0 THEN
+        DBMS_OUTPUT.PUT_LINE('Fine imposed: Rs ' || v_fine);
+    END IF;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('No such book issued to this student.');
+    WHEN OTHERS THEN
+        ROLLBACK;
+        DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+END;
+/
+```
+
+## 10. SQL DDL Demonstration
+
+```sql
+-- Create Borrower table
+CREATE TABLE Borrower (
+    Rollin NUMBER PRIMARY KEY,
+    Name VARCHAR2(100) NOT NULL,
+    DateofIssue DATE,
+    NameofBook VARCHAR2(200),
+    Status CHAR(1) CHECK (Status IN ('I', 'R'))
+);
+
+-- Create view
+CREATE VIEW ActiveLoans AS
+SELECT Rollin, Name, NameofBook, DateofIssue
+FROM Borrower
+WHERE Status = 'I';
+
+-- Create index
+CREATE INDEX idx_borrower_name ON Borrower(Name);
+
+-- Create sequence
+CREATE SEQUENCE borrower_seq START WITH 1001 INCREMENT BY 1;
+
+-- Create synonym
+CREATE SYNONYM brw FOR Borrower;
+```

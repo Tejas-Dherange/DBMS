@@ -53,22 +53,72 @@ SELECT * from Employee_salary;
  marks from table Student (rollno, name, Marks1, Marks2, Marks3,
   Marks4, Marks5). 
   
-CREATE PROCEDURE CalculateClass AS
+DELIMITER //
+
+CREATE PROCEDURE categorizeclass()
 BEGIN
-    FOR s IN (SELECT * FROM Student) LOOP
-        DECLARE
-            total NUMBER;
-            class VARCHAR(20);
-        BEGIN
-            total := s.Marks1 + s.Marks2 + s.Marks3 + s.Marks4 + s.Marks5;
-            IF total < 0 OR total > 500 THEN
-                RAISE_APPLICATION_ERROR(-20002, 'Invalid marks');
-            END IF;
-            IF total BETWEEN 990 AND 1499 THEN class := 'Distinction';
-            ELSIF total BETWEEN 900 AND 989 THEN class := 'First Class';
-            -- ... other conditions
-            END IF;
-            INSERT INTO Result VALUES (s.rollno, total, class);
-        END;
-    END LOOP;
+  DECLARE u, v, w, x, y, total_marks INT;
+  DECLARE rollno INT;
+  DECLARE finished INT DEFAULT 0;
+  DECLARE student_cursor CURSOR FOR 
+    SELECT rollno, Marks1, Marks2, Marks3, Marks4, Marks5 FROM Student;
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET finished = 1;
+
+  -- Clean previous results
+  DELETE FROM Result;
+
+  OPEN student_cursor;
+
+  read_loop: LOOP
+    FETCH student_cursor INTO rollno, u, v, w, x, y;
+    IF finished = 1 THEN 
+      LEAVE read_loop;
+    END IF;
+
+    -- Check marks validity
+    IF u < 0 OR v < 0 OR w < 0 OR x < 0 OR y < 0 OR
+       u > 300 OR v > 300 OR w > 300 OR x > 300 OR y > 300 THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = CONCAT('Invalid marks for rollno ', rollno);
+    ELSE
+      SET total_marks = u + v + w + x + y;
+      
+      IF total_marks BETWEEN 990 AND 1499 THEN
+        INSERT INTO Result (RollNo, total_marks, class) VALUES (rollno, total_marks, 'Distinction');
+      ELSEIF total_marks BETWEEN 900 AND 989 THEN
+        INSERT INTO Result (RollNo, total_marks, class) VALUES (rollno, total_marks, 'First Class');
+      ELSEIF total_marks BETWEEN 825 AND 899 THEN
+        INSERT INTO Result (RollNo, total_marks, class) VALUES (rollno, total_marks, 'Higher Second');
+      ELSEIF total_marks BETWEEN 750 AND 824 THEN
+        INSERT INTO Result (RollNo, total_marks, class) VALUES (rollno, total_marks, 'Second');
+      ELSE
+        INSERT INTO Result (RollNo, total_marks, class) VALUES (rollno, total_marks, 'Pass');
+      END IF;
+    END IF;
+
+  END LOOP;
+
+  CLOSE student_cursor;
+  
+  -- Optional: display the summary counts per class
+  SELECT class, COUNT(*) AS count FROM Result GROUP BY class;
+
+END;
+//
+
+DELIMITER ;
+
+
+29  Writ a PL/SQL procedure to find the number of students ranging from 100-70%, 69-60%, 59-50% & below 49% in each course from the student_course table given by the procedure as parameter.
+Schema: Student (ROLL_NO ,COURSE, COURSE_COD ,SEM ,TOTAL_MARKS, PERCENTAGE)
+
+CREATE PROCEDURE CalculatePercentageRanges (p_course VARCHAR) AS
+    v_100_70 NUMBER;
+    v_69_60 NUMBER;
+    -- ... variables
+BEGIN
+    SELECT COUNT(*) INTO v_100_70 FROM Student 
+    WHERE course = p_course AND percentage BETWEEN 70 AND 100;
+
+    -- Similarly for other ranges
+    -- Output results
 END;

@@ -1,0 +1,145 @@
+
+## 23. MongoDB Aggregation and Indexing
+
+```javascript
+// Create collection
+db.createCollection("employee");
+
+// Insert data
+db.employee.insertMany([
+    {emp_id: 1, emp_name: "John", emp_dept: "IT", salary: 75000},
+    {emp_id: 2, emp_name: "Jane", emp_dept: "HR", salary: 65000},
+    {emp_id: 3, emp_name: "Bob", emp_dept: "IT", salary: 80000}
+]);
+
+// Create indexes
+db.employee.createIndex({emp_id: 1});
+db.employee.createIndex({emp_dept: 1, salary: -1});
+
+// Aggregation examples
+// 1. Average salary by department
+db.employee.aggregate([
+    {$group: {_id: "$emp_dept", avgSalary: {$avg: "$salary"}}}
+]);
+
+// 2. Highest paid employee
+db.employee.aggregate([
+    {$sort: {salary: -1}},
+    {$limit: 1}
+]);
+
+// 3. Department headcount
+db.employee.aggregate([
+    {$group: {_id: "$emp_dept", count: {$sum: 1}}}
+]);
+```
+
+## 24. Advanced Deposit/Borrow Queries
+
+```sql
+-- 1. Deposits in Anil's city
+SELECT d.amount
+FROM Deposit d
+JOIN Customers c1 ON d.cname = c1.cname
+JOIN Customers c2 ON c2.cname = 'Anil'
+WHERE c1.city = c2.city;
+
+-- 2. Total and max loan from Karolbagh
+SELECT SUM(amount) AS total_loans, MAX(amount) AS max_loan
+FROM Borrow
+WHERE bname = 'KAROLBAGH';
+
+-- 3. Deposits after 1-Jan-98
+SELECT SUM(amount) AS total_deposits
+FROM Deposit
+WHERE adate > TO_DATE('01-JAN-98', 'DD-MON-YY');
+
+-- 4. Max deposit in Pune
+SELECT MAX(d.amount) AS max_deposit
+FROM Deposit d
+JOIN Customers c ON d.cname = c.cname
+WHERE c.city = 'PUNE';
+```
+
+## 25. MongoDB Games Collection
+
+```javascript
+// Create games collection
+db.createCollection("games");
+
+// Insert games
+db.games.insertMany([
+    {
+        name: "Space Adventure",
+        gametype: "Action",
+        score: 92,
+        achievements: ["Game Master", "Speed Demon", "Completionist"]
+    },
+    {
+        name: "Puzzle Quest",
+        gametype: "Puzzle",
+        score: 85,
+        achievements: ["Game Master", "Quick Thinker"]
+    },
+    {
+        name: "Racing Pro",
+        gametype: "Racing",
+        score: 88,
+        achievements: ["Speed Demon", "Perfect Lap"]
+    }
+]);
+
+// Query 1: All games
+db.games.find();
+
+// Query 2: Top 3 highest scored games
+db.games.find().sort({score: -1}).limit(3);
+
+// Query 3: Games with both achievements
+db.games.find({
+    achievements: {$all: ["Game Master", "Speed Demon"]}
+});
+```
+
+## 26. Employee Tax Calculation
+
+```sql
+CREATE OR REPLACE PROCEDURE calculate_employee_tax AS
+    v_gross_salary NUMBER;
+    v_tax NUMBER;
+    v_net_salary NUMBER;
+    v_total_deduction NUMBER;
+BEGIN
+    FOR emp_rec IN (SELECT emp_no, basic, HRA, DA FROM Employee_salary) LOOP
+        -- Calculate gross salary
+        v_gross_salary := emp_rec.basic + emp_rec.HRA + emp_rec.DA;
+        
+        -- Calculate tax (simplified progressive tax)
+        IF v_gross_salary <= 250000 THEN
+            v_tax := 0;
+        ELSIF v_gross_salary <= 500000 THEN
+            v_tax := (v_gross_salary - 250000) * 0.05;
+        ELSIF v_gross_salary <= 1000000 THEN
+            v_tax := 12500 + (v_gross_salary - 500000) * 0.20;
+        ELSE
+            v_tax := 112500 + (v_gross_salary - 1000000) * 0.30;
+        END IF;
+        
+        -- Assume other deductions are 10% of basic
+        v_total_deduction := v_tax + (emp_rec.basic * 0.10);
+        v_net_salary := v_gross_salary - v_total_deduction;
+        
+        -- Update employee record
+        UPDATE Employee_salary
+        SET gross_salary = v_gross_salary,
+            Total_deduction = v_total_deduction,
+            net_salary = v_net_salary
+        WHERE emp_no = emp_rec.emp_no;
+        
+        -- Display employee name and tax
+        DBMS_OUTPUT.PUT_LINE('Employee: ' || emp_rec.emp_no || ', Tax: ' || v_tax);
+    END LOOP;
+    COMMIT;
+END;
+/
+```
